@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jurafuchs Klausurenkurs · Handschriftlich abgeben</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="modul.css">
+</head>
+<body>
+<header>
+  <div class="innen">
+    <span class="marke">Jurafuchs<span>Klausurenkurs</span></span>
+    <div class="kopfrechts"><span id="modus"></span><button class="jf-btn jf-btn--secondary" id="vonvorn">Von vorn</button></div>
+  </div>
+</header>
+<div class="innen seitenkopf">
+  <h1>Handschriftlich abgeben</h1>
+  <ol id="schritte" aria-label="Schritte"></ol>
+  <div id="statuschip" class="mut"></div>
+</div>
+<div id="ansage" class="jf-visually-hidden" role="status" aria-live="polite"></div>
+<main class="innen" id="ansicht" tabindex="-1"></main>
+<script src="daten.js"></script>
+<script src="modell.js"></script>
+<script src="leser.js"></script>
+<script src="ampel.js"></script>
+<script src="modul.js"></script>
+</body>
+</html>

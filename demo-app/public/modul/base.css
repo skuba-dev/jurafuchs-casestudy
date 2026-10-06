@@ -1,0 +1,41 @@
+/* Jurafuchs Design System: globale Basis-Styles (Abschnitt 5) und Typo-Hilfsklassen (Abschnitt 3.3). Nur ein Theme (hell). */
+html { background: var(--surface-peach); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 25px;
+  color: var(--charcoal);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { color: var(--ink); font-weight: 700; margin: 0; }
+
+a { color: var(--coral-text); text-decoration: none; }
+a:hover { color: var(--coral-hover); text-decoration: underline; }
+
+/* Fokus: gilt für JEDES interaktive Element (15:1 auf Peach und Weiß) */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Eingabefelder */
+input, textarea, select {
+  font: inherit;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+}
+input::placeholder, textarea::placeholder { color: var(--ink-subtle); }
+
+.t-display-xl { font: 700 80px/80px var(--font-sans); color: var(--ink); }
+.t-display-lg { font: 700 58px/63px var(--font-sans); color: var(--ink); }
+.t-heading    { font: 700 20px/26px var(--font-sans); color: var(--ink); }
+.t-body       { font: 400 16px/25px var(--font-sans); color: var(--ink-muted); }
+.t-nav        { font: 500 14px/20px var(--font-sans); }
+.t-eyebrow    { font: 500 13px/18px var(--font-sans); color: var(--coral-text); }
+.t-card-title { font: 700 13px/18px var(--font-sans); }
+.t-card-body  { font: 400 12px/20px var(--font-sans); color: var(--ink); }
+.t-caption    { font: 400 11px/16px var(--font-sans); color: var(--ink-muted); }

@@ -1,0 +1,69 @@
+/* Jurafuchs Design System: Tokens (1:1 aus der Anleitung, Abschnitt 3.1). Quelle der Wahrheit, nicht ändern ohne Rückfrage. */
+:root {
+  /* ---------- Schriften ---------- */
+  --font-sans: "GT Walsheim Pro", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Fragment Mono", ui-monospace, Menlo, monospace;
+
+  /* ---------- Flächen ---------- */
+  --surface-peach: #fef7f1;   /* Seiten- und Hero-Grund */
+  --surface: #ffffff;         /* Header, Karten, Inputs, sekundäre Buttons */
+  --surface-warm: #f8f5f3;    /* ruhige Panels, Tabellenstreifen (einziges neutrales Panel) */
+
+  /* ---------- Text / Tinte ---------- */
+  --ink: #1f1f1f;             /* Überschriften, Kartentitel */
+  --charcoal: #2e2e2e;        /* Standard-Fließtext, Primary-Button-Fläche */
+  --on-charcoal: #ffffff;     /* Text auf Charcoal */
+  --ink-muted: #595959;       /* Lead, Navigation, Sekundärtext (6,6:1 auf Peach) */
+  --ink-subtle: #7e7e7e;      /* NUR Platzhalter/Deko, nie Fließtext (4,06:1 auf Weiß) */
+
+  /* ---------- Linien ---------- */
+  --border: #ebebeb;          /* Header-Unterkante, Kartentrenner */
+  --border-strong: #d9d9d9;   /* Outline sekundärer Button, Input-Rahmen */
+
+  /* ---------- Marke / Akzente ---------- */
+  --coral: #ef7355;           /* Markenfarbe: Blob, Script-Wortmarke, Flächen. NICHT für kleinen Text */
+  --coral-hover: #cc5537;     /* Hover/Pressed koralle Links (nur großer Text, 4,0:1) */
+  --coral-text: #c2492b;      /* Koralle für Text: 4,6:1 auf Peach, 4,9:1 auf Weiß */
+  --sun: #f5a453;             /* Warmer Zweitakzent, nur Flächen/Illustration */
+  --rose: #e94757;            /* Danger/negativ, nur Flächen/Icons, immer mit Wort */
+  --teal: #01cba8;            /* Illustration/Highlights, nur Flächen */
+  --green: #00c866;           /* Erfolgsmarker (Haken), nur Fläche/Icon */
+  --sky: #06b5ed;             /* Illustration, nur Flächen */
+  --blue: #1e88ce;            /* Illustration, nur Flächen */
+  --navy: #102a43;            /* tiefstes Blau, dunkle Illustrationsgründe */
+  --star: #ffcc02;            /* Bewertungsstern, nur Fläche */
+
+  /* ---------- Feedback-Töne ---------- */
+  --info-bg: #f2f8fd;         /* Fachhinweis (Peer/Rubrik) */
+  --info-border: #c3effd;
+  --info-ink: #12537e;        /* 7,6:1 auf info-bg */
+  --foxxy-bg: #fef7f1;        /* KI-Feedback (= surface-peach) */
+  --foxxy-border: #fce1c5;
+  --foxxy-ink: #e84a24;       /* NUR Illustration (3,6:1). Für Text coral-text verwenden */
+  --success-bg: #ebfff5;      /* Punkte-Pill */
+  --success-ink: #00793c;     /* 5,3:1 auf success-bg */
+  --peer-bg: #fcf5fe;         /* Avatar-Scheibe der Peer-Person */
+  --peer-ink: #6b0995;        /* Initialen im Avatar */
+
+  /* ---------- Abstände (4px-Raster) ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---------- Radien ---------- */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* ---------- Schatten ---------- */
+  --shadow-sm: 0 4px 4px 0 rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 8px 24px 0 rgba(120, 80, 50, 0.12);
+}

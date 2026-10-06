@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "handschrift-demo", "runtimeExecutable": "py", "runtimeArgs": ["demo-app/server.py"], "port": 4173 }
+  ]
+}
