@@ -1,0 +1,5 @@
+# Testbilder enthalten Namen Minderjähriger und gehören nicht ins Repository
+demo-app/public/testdaten/
+
+__pycache__/
+*.pyc
