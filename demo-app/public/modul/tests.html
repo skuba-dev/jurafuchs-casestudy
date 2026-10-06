@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tests · Handschrift-Modul</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  main { max-width: 900px; margin: 0 auto; padding: var(--space-8) var(--space-6); }
+  h1 { font: 700 20px/26px var(--font-sans); margin-bottom: var(--space-2); }
+  h2 { font: 700 16px/24px var(--font-sans); margin: var(--space-6) 0 var(--space-2); }
+  .zusammen { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--surface); margin: var(--space-4) 0; font-weight: 700; }
+  .zusammen.ok { border-color: var(--green); color: var(--success-ink); background: var(--success-bg); }
+  .zusammen.fehler { border-color: var(--rose); color: var(--ink); }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { padding: var(--space-1) 0; font: 400 14px/20px var(--font-sans); }
+  li .m { display: inline-block; width: var(--space-16); font-weight: 700; }
+  li.ok .m { color: var(--success-ink); }
+  li.fehler .m { color: var(--coral-text); }
+  li .d { color: var(--ink-muted); display: block; margin-left: var(--space-16); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tests · Handschrift-Modul</h1>
+  <p class="t-body">Diese Seite prüft die Logik in <code>modell.js</code>, <code>leser.js</code> und <code>ampel.js</code>. Sie läuft im Browser ohne Installation: Datei über den Server öffnen (<code>py demo-app/server.py</code>, dann <code>/modul/tests.html</code>).</p>
+  <div id="zusammen" class="zusammen">Tests laufen …</div>
+  <div id="ergebnis"></div>
+</main>
+<script src="modell.js"></script>
+<script src="leser.js"></script>
+<script src="ampel.js"></script>
+<script>
+'use strict';
+// Kleine eigene Testhilfe, absichtlich ohne Bibliothek.
+const gruppen = [];
+let aktuelle = null;
+const gruppe = (name, fn) => { aktuelle = { name, faelle: [] }; gruppen.push(aktuelle); fn(); };
+const fall = (name, fn) => aktuelle.faelle.push({ name, fn });
+const gleich = (ist, soll, was = '') => { if (JSON.stringify(ist) !== JSON.stringify(soll)) throw new Error(`${was} erwartet ${JSON.stringify(soll)}, war ${JSON.stringify(ist)}`); };
+const wahr = (b, was = '') => { if (!b) throw new Error(`${was} war nicht wahr`); };
+const wirft = (fn, was = '') => { try { fn(); } catch (e) { return; } throw new Error(`${was} hat nicht geworfen`); };
+
+const zeile = (nr, art, text, rest = {}) => ({ nr, text_roh: text, text_bestaetigt: text, art, unsicher: /\[\?\]/.test(text), quelle: 'Test', ...rest });
+const einreichung = (seiten, status = 'pruefung_offen') => ({ id: 't', eingabe_typ: 'handschrift', status, text_fuer_korrektur: '', offene_unsichere_stellen: 0, aenderungen: [], seiten });
+const seite = (nr, zeilen) => ({ nr, bild_ref: '(Test)', qualitaet: 'gruen', erkennung_status: 'fertig', zeilen });
+
+// ---------- modell.js: Status ----------
+gruppe('Status folgt der Reihenfolge (04-integration.md)', () => {
+  fall('jeder Schritt vorwärts ist erlaubt', () => {
+    const e = einreichung([], 'entwurf');
+    STATUS.slice(1).forEach(s => { setzeStatus(e, s); gleich(e.status, s); });
+  });
+  fall('ein Sprung über einen Status wird abgelehnt', () => wirft(() => setzeStatus(einreichung([], 'seiten_hochgeladen'), 'erkennung_laeuft')));
+  fall('rückwärts wird abgelehnt', () => wirft(() => setzeStatus(einreichung([], 'bestaetigt'), 'pruefung_offen')));
+  fall('"eingereicht" ist nur aus "bestaetigt" erreichbar', () => {
+    ['entwurf', 'seiten_hochgeladen', 'qualitaet_geprueft', 'erkennung_laeuft', 'pruefung_offen'].forEach(s => wirft(() => setzeStatus(einreichung([], s), 'eingereicht'), s));
+  });
+  fall('"eingereicht" setzt den Zeitstempel', () => { const e = einreichung([], 'bestaetigt'); setzeStatus(e, 'eingereicht'); wahr(!!e.eingereicht_am); });
+});
+
+// ---------- modell.js: Text für die Korrektur ----------
+gruppe('Text für die Korrektur (baueTextFuerKorrektur)', () => {
+  fall('Text und Einfügung werden übernommen, Streichung entfällt', () => {
+    const e = einreichung([seite(1, [zeile(1, 'text', 'A'), zeile(2, 'streichung', 'GESTRICHEN'), zeile(3, 'einfuegung', 'B')])]);
+    gleich(baueTextFuerKorrektur(e), 'A\nB');
+  });
+  fall('Randnotiz geht nur mit "mitnehmen" mit', () => {
+    const z = mit => zeile(2, 'randnotiz', 'RAND', { mitnehmen: mit });
+    gleich(baueTextFuerKorrektur(einreichung([seite(1, [zeile(1, 'text', 'A'), z(false)])])), 'A');
+    gleich(baueTextFuerKorrektur(einreichung([seite(1, [zeile(1, 'text', 'A'), z(true)])])), 'A\nRAND');
+  });
+  fall('Skizze wird zu [Skizze]', () => gleich(baueTextFuerKorrektur(einreichung([seite(1, [zeile(1, 'skizze', 'egal')])])), '[Skizze]'));
+  fall('Einfügung ohne Marke bleibt draußen, bis sie eingesetzt ist', () => {
+    const e = einreichung([seite(1, [zeile(1, 'text', 'A'), zeile(2, 'einfuegung', 'LOSE', { grund: 'marke_fehlt', unsicher: true })])]);
+    gleich(baueTextFuerKorrektur(e), 'A');
+    delete e.seiten[0].zeilen[1].grund;
+    gleich(baueTextFuerKorrektur(e), 'A\nLOSE');
+  });
+  fall('Seiten und Zeilen kommen in der Reihenfolge ihrer Nummer, ohne Seitenmarken', () => {
+    const e = einreichung([seite(2, [zeile(2, 'text', 'Z2'), zeile(1, 'text', 'Z1')]), seite(1, [zeile(1, 'text', 'S1')])]);
+    gleich(baueTextFuerKorrektur(e), 'S1\nZ1\nZ2');
+    wahr(!/Seite/.test(baueTextFuerKorrektur(e)));
+  });
+  fall('Fehler der Verfasserin bleiben wörtlich stehen', () => {
+    const t = 'Sie war kausal und auch adequat. A kann Schadensersatz aus § 832 Abs. 1 BGB verlangen.';
+    gleich(baueTextFuerKorrektur(einreichung([seite(1, [zeile(1, 'text', t)])])), t);
+  });
+  fall('[?] bleibt im Text und wird gezählt', () => {
+    const t = baueTextFuerKorrektur(einreichung([seite(1, [zeile(1, 'text', 'nicht [?] und § [?] Abs. 2')])]));
+    gleich(zaehleOffene(t), 2); wahr(t.includes('[?]'));
+  });
+  fall('der Text enthält nie einen Bildverweis', () => {
+    const e = einreichung([seite(1, [zeile(1, 'text', 'A')])]); e.seiten[0].bild_ref = 'blob:http://x/abc';
+    wahr(!/blob:|data:image|bild_ref/.test(baueTextFuerKorrektur(e)));
+  });
+});
+
+gruppe('Bestätigung (bestaetige)', () => {
+  fall('erst die Bestätigung erzeugt text_fuer_korrektur und die Zahl offener [?]', () => {
+    const e = einreichung([seite(1, [zeile(1, 'text', 'A [?]')])]);
+    gleich(e.text_fuer_korrektur, '');
+    bestaetige(e);
+    gleich([e.status, e.text_fuer_korrektur, e.offene_unsichere_stellen], ['bestaetigt', 'A [?]', 1]);
+  });
+  fall('ohne Status "pruefung_offen" ist keine Bestätigung möglich', () => {
+    ['entwurf', 'seiten_hochgeladen', 'qualitaet_geprueft', 'erkennung_laeuft', 'bestaetigt', 'eingereicht'].forEach(s => wirft(() => bestaetige(einreichung([], s)), s));
+  });
+});
+
+// ---------- leser.js ----------
+gruppe('Leser-Schnittstelle (02-texterkennung.md)', () => {
+  fall('der Platzhalter-Leser liefert alle fünf Arten und drei [?]-Stellen', async () => {
+    const z = await erkenne({ nr: 1, typ: 'bild', bild_ref: '(Test)' });
+    gleich([...new Set(z.map(x => x.art))].sort(), ['einfuegung', 'randnotiz', 'skizze', 'streichung', 'text']);
+    gleich(z.filter(x => /\[\?\]/.test(x.text_roh)).length, 3);
+  });
+  fall('Zeilenfelder nach 04-integration.md, text_roh gleich text_bestaetigt, nr fortlaufend', async () => {
+    const z = await erkenne({ nr: 1, typ: 'bild', bild_ref: '(Test)' });
+    z.forEach((x, k) => {
+      gleich(x.nr, k + 1, 'nr');
+      gleich(x.text_roh, x.text_bestaetigt, 'text_roh');
+      ['art', 'unsicher', 'quelle'].forEach(f => wahr(f in x, f));
+      wahr(!('konfidenz' in x), 'konfidenz wird nicht erfunden');
+    });
+  });
+  fall('Randnotizen starten mit mitnehmen=false', async () => {
+    const z = await erkenne({ nr: 1, typ: 'bild', bild_ref: '(Test)' });
+    z.filter(x => x.art === 'randnotiz').forEach(x => gleich(x.mitnehmen, false));
+  });
+  fall('der Leser ist an einer Stelle austauschbar, auch das Platzhalter-Kennzeichen', async () => {
+    const alt = LESER;
+    try {
+      LESER = { name: 'Stub', platzhalter: false, async lese() { return [{ text: 'Eine [?] Zeile', art: 'text', unsicher: false }]; } };
+      const z = await erkenne({ nr: 1 });
+      gleich([z.length, z[0].quelle, z[0].text_roh], [1, 'Stub', 'Eine [?] Zeile']);
+      gleich(z[0].unsicher, true, '[?] im Text macht die Zeile unsicher');
+    } finally { LESER = alt; }
+  });
+  fall('ein scheiternder Leser wirft, statt leise etwas zu liefern', async () => {
+    const alt = LESER;
+    try { LESER = { name: 'Defekt', platzhalter: false, async lese() { throw new Error('nicht erreichbar'); } };
+      let geworfen = false; try { await erkenne({ nr: 1 }); } catch (e) { geworfen = true; } wahr(geworfen); }
+    finally { LESER = alt; }
+  });
+});
+
+// ---------- ampel.js ----------
+gruppe('Qualitätsampel: Bewertung (bewerteQualitaet)', () => {
+  const q = (k, h) => bewerteQualitaet(k, h).qualitaet;
+  fall('Auflösung: unter 400 rot, unter 800 gelb, sonst grün', () => gleich([q(399, 200), q(400, 200), q(799, 200), q(800, 200)], ['rot', 'gelb', 'gelb', 'gruen']));
+  fall('Helligkeit: unter 50 rot, unter 90 gelb, sonst grün', () => gleich([q(2000, 49), q(2000, 50), q(2000, 89), q(2000, 90)], ['rot', 'gelb', 'gelb', 'gruen']));
+  fall('sehr helle Bilder werden nicht bewertet (weißes Papier)', () => gleich(q(2000, 255), 'gruen'));
+  fall('Rot gewinnt gegen Gelb', () => { gleich(q(500, 40), 'rot'); gleich(q(300, 70), 'rot'); });
+  fall('jede Warnung hat einen Hinweistext', () => { wahr(bewerteQualitaet(300, 40).hinweise.length === 2); gleich(bewerteQualitaet(2000, 200).hinweise, []); });
+});
+
+gruppe('Qualitätsampel: Messung (messeBild) an künstlichen Bildern', () => {
+  const bild = (b, h, farbe) => new Promise(ok => {
+    const c = document.createElement('canvas'); c.width = b; c.height = h; const x = c.getContext('2d'); x.fillStyle = farbe; x.fillRect(0, 0, b, h);
+    const i = new Image(); i.onload = () => ok(i); i.src = c.toDataURL('image/png');
+  });
+  fall('großes weißes Bild ist grün', async () => gleich(messeBild(await bild(1200, 1600, '#ffffff')).qualitaet, 'gruen'));
+  fall('dunkles Bild ist rot', async () => gleich(messeBild(await bild(1200, 1600, '#101010')).qualitaet, 'rot'));
+  fall('winziges Bild ist rot', async () => gleich(messeBild(await bild(300, 400, '#ffffff')).qualitaet, 'rot'));
+  fall('die Messwerte sind plausibel', async () => { const m = messeBild(await bild(1000, 1500, '#ffffff')); gleich([m.werte.kurzeKantePx, m.werte.helligkeit], [1000, 255]); });
+});
+
+// ---------- Ausführung ----------
+(async () => {
+  let ok = 0, fehler = 0;
+  const wurzel = document.getElementById('ergebnis');
+  for (const g of gruppen) {
+    const h = document.createElement('h2'); h.textContent = g.name; wurzel.appendChild(h);
+    const ul = document.createElement('ul'); wurzel.appendChild(ul);
+    for (const f of g.faelle) {
+      const li = document.createElement('li');
+      try { await f.fn(); li.className = 'ok'; li.innerHTML = '<span class="m">Bestanden</span>'; ok++; }
+      catch (e) { li.className = 'fehler'; li.innerHTML = '<span class="m">Fehler</span>'; li.dataset.fehler = e.message; fehler++; }
+      li.append(f.name);
+      if (li.dataset.fehler) { const d = document.createElement('span'); d.className = 'd'; d.textContent = li.dataset.fehler; li.appendChild(d); }
+      ul.appendChild(li);
+    }
+  }
+  const z = document.getElementById('zusammen');
+  z.className = 'zusammen ' + (fehler ? 'fehler' : 'ok');
+  z.textContent = `${ok + fehler} Tests · ${ok} bestanden · ${fehler} Fehler`;
+  window.__testErgebnis = { gesamt: ok + fehler, bestanden: ok, fehler };
+})();
+</script>
+</body>
+</html>
